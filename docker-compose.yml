@@ -1,0 +1,43 @@
+version: '3.4'
+
+services:
+  db:
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - /home/barry/mongodb/database:/data/db
+    ports:
+      - 27017:27017
+
+  web:
+    build: server
+    ports:
+      - '8000:8000'
+    env_file:
+      - .env
+    depends_on:
+      - db
+    environment:
+      - SECRET_KEY
+      - DEBUG=True
+      - MONGO_URI
+      - MONGO_DB
+      - TEST_MONGO_URI
+      - TEST_MONGO_DB
+      - DATA_COLLECTION
+      - USER_DATA_COLLECTION
+      - CONTACT_US_DATA_COLLECTION
+      - TEST_AWS_ACCESS_KEY_ID
+      - TEST_AWS_SECRET_ACCESS_KEY
+      - TEST_AWS_STORAGE_BUCKET_NAME
+      - TEST_AWS_S3_OBJECT_URL_PREFIX
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_STORAGE_BUCKET_NAME
+      - AWS_S3_OBJECT_URL_PREFIX
+      - BUCKET_SUBFOLDER
+      - TEST_BUCKET_SUBFOLDER
+      - BACKEND_MAIL_ADDR
+      - BACKEND_MAIL_PWD
