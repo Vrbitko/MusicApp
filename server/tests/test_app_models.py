@@ -1,9 +1,16 @@
+from unittest import mock
+from urllib.request import Request
+
+import pytest
 from dotenv import load_dotenv
 import requests
 import unittest
 import pymongo
 import os
 
+from authentication import Token_Auth, User_Auth
+from authentication.validate import User_Auth as mocked_user_auth
+from authentication.errors import InvalidTokenError
 from core.settings import DATABASE
 from mainapp.errors import (
     FileAlreadyExistsForCurrentUserError,
@@ -14,6 +21,10 @@ from mainapp import (
     Music_Data,
 )
 from . import Base
+from authentication.validate import ValidateUser
+
+from unittest.mock import patch, MagicMock
+
 
 data = Base()
 
@@ -77,6 +88,57 @@ class TestAppModels(unittest.TestCase):
             S3_Functions.delete_file_from_s3(data.test_data["CloudFilename"])
         except Exception:
             print("Deletion Error")
+
+    @patch.object(Token_Auth, 'decode_token')
+    def test_user_validator_correct_behavior(self, token_auth):
+        request = requests.get('http://random.com/test')
+        request.headers = {"Authorization": "Bearer token"}
+        token_auth.return_value = (True, {"id": "test_id", "role": "user"})
+        with mock.patch.object(mocked_user_auth, "validate_uid", return_value=None):
+            # User_Auth.validate_uid = MagicMock(return_value=None)
+            validator = ValidateUser()
+            assert validator.has_permission(request, None)
+
+    def test_user_validator_token_exception(self):
+        request = requests.get('http://random.com/test')
+        request.headers = {"Authorization": "Bearer"}
+        validator = ValidateUser()
+        return_value = validator.has_permission(request, None)
+        assert not return_value
+
+    def test_user_validator_invalid_token(self):
+        request = requests.get('http://random.com/test')
+        request.headers = {"Authorization": "Bearer token"}
+        validator = ValidateUser()
+        return_value = validator.has_permission(request, None)
+        assert not return_value
+
+    @patch.object(Token_Auth, 'decode_token')
+    def test_user_validator_second_exception(self, token_auth):
+        request = requests.get('http://random.com/test')
+        request.headers = {"Authorization": "Bearer token"}
+        token_auth.return_value = ("test", True)
+        validator = ValidateUser()
+        return_value = validator.has_permission(request, None)
+        assert not return_value
+
+    @patch.object(Token_Auth, 'decode_token')
+    def test_user_validator_invalid_user_UID(self, token_auth):
+        request = requests.get('http://random.com/test')
+        request.headers = {"Authorization": "Bearer token"}
+        token_auth.return_value = (True, {"id": "test_id", "role": "user"})
+        validator = ValidateUser()
+        assert not validator.has_permission(request, None)
+
+    @patch.object(Token_Auth, 'decode_token')
+    def test_user_validator_third_exception(self, token_auth):
+        request = requests.get('http://random.com/test')
+        request.headers = {"Authorization": "Bearer token"}
+        token_auth.return_value = (True, {"id": "id"})
+        User_Auth.validate_uid = MagicMock(return_value=None)
+        validator = ValidateUser()
+        assert not validator.has_permission(request, None)
+
 
     def clean(self):
         self.m_db.remove({})
