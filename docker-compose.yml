@@ -1,0 +1,17 @@
+version: '3.4'
+
+services:
+  db:
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - /home/barry/mongodb/database:/data/db
+    ports:
+      - 27017:27017
+
+  web:
+    build: server
+    ports:
+      - '8000:8000'
